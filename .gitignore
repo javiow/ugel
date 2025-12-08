@@ -1,1 +1,2 @@
 *.csv
+notebook/daa_backtest_outputs/*

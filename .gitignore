@@ -1,2 +1,3 @@
 *.csv
 notebook/daa_backtest_outputs/*
+*.pkl

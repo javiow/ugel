@@ -264,7 +264,7 @@ def sample_daa_combinations(
 
     # n_samples보다 적게 생성되면 그냥 거기까지 yield됨
 
-def daa_backtest(all_ticker_price_df, all_ticker_columns):
+def daa_backtest(all_ticker_price_df, all_ticker_columns, n_samples=100, random_state=42):
 
     def set_weight(series):
         canary_score = series.loc["canary_signal"]
@@ -294,9 +294,9 @@ def daa_backtest(all_ticker_price_df, all_ticker_columns):
     result_portval_dict['buy_and_hold'] = individual_port_val_df.sum(axis=1)
 
     # 샘플 1,000개 뽑기
-    for offense_assets, defense_assets, canary_assets in tqdm(sample_daa_combinations(all_ticker_columns=all_ticker_columns, n_samples=100, random_state=42)):
+    for offense_assets, defense_assets, canary_assets in tqdm(sample_daa_combinations(all_ticker_columns=all_ticker_columns, n_samples=n_samples, random_state=random_state)):
         # 샘플링하여 백테스트 실행
-        # backtest(offense_assets, defense_assets, canary_assets)
+        # lib(offense_assets, defense_assets, canary_assets)
         # print("공격형:", offense_assets, "방어형:", defense_assets, "카나리아:", canary_assets)
 
         strategy_name = "+".join(offense_assets) + '_' + "+".join(defense_assets) + '_' + "+".join(canary_assets)
@@ -395,12 +395,12 @@ def daa_visualize(result_portval_dict, top_10_portval_dict):
 
     ax = compare_df[top_10_portval_dict['top_10_sharpe_ratio'].rename(index=format_col_name).index].plot(figsize=(12, 5))
     ax.set_title(f"Top 10 Sharpe Ratio - 누적 수익률 곡선")
-    plt.show()
+    # plt.show()
 
     dd_df, mdd_series, longest_dd_period_df = get_drawdown_infos(compare_df[top_10_portval_dict['top_10_sharpe_ratio'].rename(index=format_col_name).index])
     ax = dd_df.plot(figsize=(15, 5))
     ax.set_title(f"Top 10 Sharpe Ratio - Drawdown 시계열")
-    plt.show()
+    # plt.show()
 
     print("\n" + "=" * 80)
     print(f"Top 10 MDD 포트폴리오(Sharpe Ration 기반) - 요약 지표 (Top 10)")
@@ -423,7 +423,7 @@ def daa_visualize(result_portval_dict, top_10_portval_dict):
     print(top_10_portval_dict['top_10_lgd_sharpe'].rename(index=format_col_name))
     sns.heatmap(compare_df[top_10_portval_dict['top_10_sharpe_ratio'].rename(index=format_col_name).index].pct_change().corr(), cmap="coolwarm", annot=True, fmt=".2f")
     plt.title(f"Top 10 Sharpe Ratio - 일간 수익률 상관관계")
-    plt.show()
+    # plt.show()
 
     # 상위 10 CAGR
     print("\n" + "=" * 80)
@@ -433,12 +433,12 @@ def daa_visualize(result_portval_dict, top_10_portval_dict):
 
     ax = compare_df[top_10_portval_dict['top_10_cagr'].rename(index=format_col_name).index].plot(figsize=(12, 5))
     ax.set_title(f"Top 10 CAGR - 누적 수익률 곡선")
-    plt.show()
+    # plt.show()
 
     dd_df, mdd_series, longest_dd_period_df = get_drawdown_infos(compare_df[top_10_portval_dict['top_10_cagr'].rename(index=format_col_name).index])
     ax = dd_df.plot(figsize=(15, 5))
     ax.set_title(f"Top 10 CAGR - Drawdown 시계열")
-    plt.show()
+    # plt.show()
 
     print("\n" + "=" * 80)
     print(f"Top 10 MDD 포트폴리오(CAGR 기반) - 요약 지표 (Top 10)")
@@ -490,15 +490,15 @@ def save_daa_outputs(top_10_portval_dict, result_portval_dict):
     now_date = datetime.now().strftime("%Y%m%d")
     now_time = datetime.now().strftime("%H%M%S")
 
-    os.makedirs("./daa_backtest_outputs", exist_ok=True)
-    os.makedirs(f"./daa_backtest_outputs/{now_date}", exist_ok=True)
+    os.makedirs("./backtest/daa_backtest_outputs", exist_ok=True)
+    os.makedirs(f"./backtest/daa_backtest_outputs/{now_date}", exist_ok=True)
 
     for name, df in daa_backtest_filter(top_10_portval_dict).items():
 
-        df.to_parquet(f"daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet", index=True)
-        print(f"Saved: daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet")
+        df.to_parquet(f"./backtest/daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet", index=True)
+        print(f"Saved: ./backtest/daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet")
 
         for idx in df.index:
             result_portval_dict[idx].reset_index().rename(columns={0: 'value'}).to_parquet(
-                f"daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet", index=True)
-            print(f"Saved: daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet")
+                f"./backtest/daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet", index=True)
+            print(f"Saved: ./backtest/daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet")

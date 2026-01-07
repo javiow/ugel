@@ -187,4 +187,4 @@ def make_daa_data(start_date="2004-01-01", end_date="2004-12-31", sample_len=500
     print(f"DAA 데이터셋이 ./data/daa/{now_date}/daa_etf_prices.pkl 에 저장되었습니다.")
 
 if __name__ == "__main__":
-    make_daa_data(sample_len=100)
+    make_daa_data(sample_len=300)

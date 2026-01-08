@@ -17,5 +17,9 @@ if __name__ == "__main__":
     all_ticker_columns.append("IEF")
 
     result_portval_dict, top_10_portval_dict = dabt.daa_backtest(ticker_df, all_ticker_columns,  n_samples=100, random_state=None)
-    dabt.daa_visualize(result_portval_dict, top_10_portval_dict)
-    dabt.save_daa_outputs(top_10_portval_dict, result_portval_dict)
+
+    # 시각화는 노트북에서 확인
+    # dabt.daa_visualize(result_portval_dict, top_10_portval_dict)
+
+    # 조건에 만족하는 포트폴리오만 저장
+    dabt.save_daa_outputs(result_portval_dict, min_sharpe=0.70, min_cagr=0.13, min_mdd=-0.50)

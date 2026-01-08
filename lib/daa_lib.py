@@ -464,41 +464,41 @@ def daa_visualize(result_portval_dict, top_10_portval_dict):
     plt.title(f"Top 10 Sharpe Ratio - 일간 수익률 상관관계")
     plt.show()
 
-def daa_backtest_filter(top_10_portval_dict, min_sharpe=0.85, min_cagr=0.15, min_mdd=-0.20):
+def daa_backtest_filter(result_portval_dict, min_sharpe=0.85, min_cagr=0.15, min_mdd=-0.20):
 
-    filtered_df = {}
+    compare_df = pd.DataFrame(result_portval_dict).dropna()
 
-    top_10_sharpe_ratio = top_10_portval_dict['top_10_sharpe_ratio']
-    top_10_cagr = top_10_portval_dict['top_10_cagr']
-    top_10_mdd_sharpe = top_10_portval_dict['top_10_mdd_sharpe']
-    top_10_mdd_cagr = top_10_portval_dict['top_10_mdd_cagr']
+    # Sharpe Ratio, CAGR, MDD DataFrame 생성
+    sr_df = get_sharpe_ratio(get_returns_df(compare_df, log=True)).to_frame("Sharpe Ratio")
+    cg_df = get_CAGR_series(compare_df).to_frame("CAGR")
+    dd_df, mdd_series, longest_dd_period_df = get_drawdown_infos(compare_df)
+    md_df = mdd_series.to_frame("MDD")
 
-    top_10_sharpe_ratio = top_10_sharpe_ratio[top_10_sharpe_ratio['Sharpe Ratio'] >= min_sharpe]
-    top_10_cagr = top_10_cagr[top_10_cagr['CAGR'] >= min_cagr]
-    top_10_mdd_sharpe = top_10_mdd_sharpe[top_10_mdd_sharpe['MDD'] <= min_mdd]
-    top_10_mdd_cagr = top_10_mdd_cagr[top_10_mdd_cagr['MDD'] >= min_mdd]
+    # 최종 조건에 만족하는 포트폴리오 필터링
+    tot_df = pd.concat([sr_df, cg_df, md_df], axis=1)
+    cond1 = tot_df['CAGR'] > min_cagr
+    cond2 = tot_df['Sharpe Ratio'] > min_sharpe
+    cond3 = tot_df['MDD'] > min_mdd
 
-    filtered_df['result_sharpe_ratio'] = top_10_sharpe_ratio
-    filtered_df['result_cagr'] = top_10_cagr
-    filtered_df['result_mdd_sharpe'] = top_10_mdd_sharpe
-    filtered_df['result_mdd_cagr'] = top_10_mdd_cagr
+    res_df = tot_df[cond1 & cond2 & cond3]
 
-    return filtered_df
+    return res_df, compare_df
 
 
-def save_daa_outputs(top_10_portval_dict, result_portval_dict):
-    now_date = datetime.now().strftime("%Y%m%d")
-    now_time = datetime.now().strftime("%H%M%S")
+def save_daa_outputs(result_portval_dict, min_sharpe=0.85, min_cagr=0.15, min_mdd=-0.20):
 
-    os.makedirs("./backtest/daa_backtest_outputs", exist_ok=True)
-    os.makedirs(f"./backtest/daa_backtest_outputs/{now_date}", exist_ok=True)
+    res_df, compare_df = daa_backtest_filter(result_portval_dict, min_sharpe=min_sharpe, min_cagr=min_cagr, min_mdd=min_mdd)
 
-    for name, df in daa_backtest_filter(top_10_portval_dict).items():
+    if len(res_df) > 0:
 
-        df.to_parquet(f"./backtest/daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet", index=True)
-        print(f"Saved: ./backtest/daa_backtest_outputs/{now_date}/{name}_{now_time}.parquet")
+        now_date = datetime.now().strftime("%Y%m%d")
+        now_time = datetime.now().strftime("%H%M%S")
 
-        for idx in df.index:
-            result_portval_dict[idx].reset_index().rename(columns={0: 'value'}).to_parquet(
-                f"./backtest/daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet", index=True)
-            print(f"Saved: ./backtest/daa_backtest_outputs/{now_date}/{idx}_{now_time}.parquet")
+        os.makedirs("./backtest/daa_backtest_outputs", exist_ok=True)
+        os.makedirs(f"./backtest/daa_backtest_outputs/{now_date}", exist_ok=True)
+
+        res_df.to_parquet(f"./backtest/daa_backtest_outputs/{now_date}/daa_res_{now_time}.parquet", index=True)
+        compare_df.to_parquet(f"./backtest/daa_backtest_outputs/{now_date}/daa_com_{now_time}.parquet", index=True)
+        print(f"조건에 만족하는 DAA 포트폴리오 {len(res_df)}개를 저장했습니다: ./backtest/daa_backtest_outputs/{now_date}/daa_res_{now_time}.parquet")
+    else:
+        print("조건에 만족하는 DAA 포트폴리오가 없습니다.")
